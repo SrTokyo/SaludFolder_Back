@@ -100,6 +100,36 @@ router.get('/:idUsuario', (req, res, next) => {
     }
     );
 });
+router.get('/email/:email', (req, res, next) => {
+  const email = req.params.email;
+  User.findOne({'email': email})
+    .select('_id nombre apellidos nit nit_tipo nacimiento email password user_tipo accesoLVL documentos')
+    .exec()
+    .then(doc => {
+      if (doc) {
+        const response = {
+          _id: doc._id,
+          nombre: doc.nombre,
+          apellidos: doc.apellidos,
+          nit: doc.nit,
+          nit_tipo: doc.nit_tipo,
+          email: doc.email,
+          password: doc.password,
+          user_tipo: doc.user_tipo,
+          accesoLVL: doc.accesoLVL,
+          documentos: doc.documentos
+        };
+        res.status(200).json(response);
+      } else {
+        res.status(404).json({ message: 'The email isnt found, it can be wrong it just wasnt ever created' })
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: err });
+    }
+    );
+});
 /*
 router.get('/:email', (req, res, next) => {
   const email = req.params.email;

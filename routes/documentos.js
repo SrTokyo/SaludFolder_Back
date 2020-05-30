@@ -2,36 +2,37 @@ var express = require('express');
 var router = express.Router();
 const mongoose = require('mongoose');
 const Documento = require('../models/documentos');
+const User = require('../models/users');
 
 /* GET Documentos listing. */
 router.get('/', (req, res, next) => {
     Documento.find()
-      .select('_id titulo owner_id users')
-      .exec()
-      .then(doc => {
-        const response = {
-          count: doc.length,
-          usuarios: doc.map(doc => {
-            return {
-              _id: doc._id,
-              titulo: doc.titulo,
-              owner_id: doc.owner_id,
-              users: doc.users,
-              request: {
-                type: 'GET',
-                url: 'http://localhost:3000/users/' + doc._id
-              }
-            }
-          })
-        };
-        res.status(200).json(response);
-      })
-      .catch(err => {
-        console.log(err);
-        res.status(500).json({ error: err });
-      }
-      );
-  });
+        .select('_id titulo owner_id users')
+        .exec()
+        .then(doc => {
+            const response = {
+                count: doc.length,
+                usuarios: doc.map(doc => {
+                    return {
+                        _id: doc._id,
+                        titulo: doc.titulo,
+                        owner_id: doc.owner_id,
+                        users: doc.users,
+                        request: {
+                            type: 'GET',
+                            url: 'http://localhost:3000/documentos/' + doc._id
+                        }
+                    }
+                })
+            };
+            res.status(200).json(response);
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json({ error: err });
+        }
+        );
+});
 /*
 router.get('/', (req, res, next) => {
     res.status(500).json({
@@ -39,15 +40,22 @@ router.get('/', (req, res, next) => {
     });
 });*/
 router.post('/', (req, res, next) => {
-    const documento = new Documento({
-        _id: new mongoose.Types.ObjectId(),
-        titulo: req.body.titulo,
-        owner_id: req.body.owner_id,
-        users: req.body.users
-    });
-    documento
-        .save()
-        .then(result => {
+    User.findById(req.body.owner_id)
+        .then(user => {
+            if(!user){
+                return res.status(404).json({
+                     message: 'owner id not found'
+                 });
+             }
+            const documento = new Documento({
+                _id: new mongoose.Types.ObjectId(),
+                titulo: req.body.titulo,
+                owner_id: req.body.owner_id,
+                users: req.body.users
+            });
+            return documento
+                .save()
+        }).then(result => {
             console.log(result);
             res.status(201).json({
                 message: ' documento created',
@@ -59,30 +67,26 @@ router.post('/', (req, res, next) => {
             });
         })
         .catch(err => {
-            console.log(err);
-            res.status(500).json({ error: err });
+            res.status(500).json({
+                error: err
+            });
         });
+
 });
 
 
-router.get('/:idUsuario', (req, res, next) => {
-    const id = req.params.idUsuario;
+router.get('/:idDocumento', (req, res, next) => {
+    const id = req.params.idDocumento;
     Documento.findById(id)
-        .select('_id nombre apellidos nit nit_tipo nacimiento email password documento_tipo accesoLVL documentos')
+        .select('_id titulo owner_id users')
         .exec()
         .then(doc => {
             if (doc) {
                 const response = {
                     _id: doc._id,
-                    nombre: doc.nombre,
-                    apellidos: doc.apellidos,
-                    nit: doc.nit,
-                    nit_tipo: doc.nit_tipo,
-                    email: doc.email,
-                    password: doc.password,
-                    documento_tipo: doc.documento_tipo,
-                    accesoLVL: doc.accesoLVL,
-                    documentos: doc.documentos
+                    titulo: doc.titulo,
+                    owner_id: doc.owner_id,
+                    users: doc.users
                 };
                 res.status(200).json(response);
             } else {
@@ -103,8 +107,8 @@ router.get('/:email', (req, res, next) => {
   });
 });
 */
-router.patch('/:idUsuario', (req, res, next) => {
-    const id = req.params.idUsuario;
+router.patch('/:idDocumento', (req, res, next) => {
+    const id = req.params.idDocumento;
     const updateOps = {};
     for (const ops of req.body) {
         updateOps[ops.propName] = ops.value;
