@@ -6,9 +6,9 @@ var logger = require('morgan');
 var bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
-
 var usersRouter = require('./routes/users');
 var documentosRouter = require('./routes/documentos');
+var filesRouter = require('./routes/files');
 
 mongoose.connect('mongodb+srv://dbEditor:dbEditorPass@dbsaludfolder-itysn.azure.mongodb.net/test?retryWrites=true&w=majority', 
   {
@@ -29,6 +29,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers",
@@ -43,6 +44,7 @@ app.use((req, res, next) => {
 
 app.use('/documentos', documentosRouter);
 app.use('/users', usersRouter);
+app.use('/files', filesRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
