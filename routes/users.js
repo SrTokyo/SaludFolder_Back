@@ -1,7 +1,9 @@
 var express = require('express');
 var router = express.Router();
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const User = require('../models/users');
+
 
 /* GET users listing. */
 router.get('/', (req, res, next) => {
@@ -39,35 +41,73 @@ router.get('/', (req, res, next) => {
     );
 });
 
-router.post('/', (req, res, next) => {
-  const user = new User({
-    _id: new mongoose.Types.ObjectId(),
-    nombre: req.body.nombre,
-    apellidos: req.body.apellidos,
-    nit: req.body.nit,
-    nit_tipo: req.body.nit_tipo,
-    email: req.body.email,
-    password: req.body.password,
-    user_tipo: req.body.user_tipo,
-    accesoLVL: req.body.accesoLVL,
-    documentos: req.body.documentos
-  });
-  user.save().then(result => {
-    console.log(result);
+router.post('/singup', (req, res, next) => {
+  User.find({ email: req.body.email })
+  .exec()
+  .then(uer => {
+    console.log(1);
+    console.log(uer);
+    if(uer.length >= 1){
+      console.log(2);
+      return res.status(409).json({
+        Message: 'email already use'
+      });
+    }else{
+      console.log(3);
+      User.find({nit : req.body.nit})
+      .exec()
+      .then(usr =>{
+        if(usr.length >= 1){
+          return res.status(409).json({
+            Message: 'nit already use'
+          });
+        }else{
+          bcrypt.hash(req.body.password, 10, (err, hash) => {
+            if (err) {
+              return res.status(500).json({
+                error: err
+              });
+            } else {
+        
+              const user = new User({
+                _id: new mongoose.Types.ObjectId(),
+                nombre: req.body.nombre,
+                apellidos: req.body.apellidos,
+                nit: req.body.nit,
+                nit_tipo: req.body.nit_tipo,
+                email: req.body.email,
+                password: hash,
+                user_tipo: req.body.user_tipo,
+                accesoLVL: req.body.accesoLVL,
+                documentos: req.body.documentos
+              });
+              user.save()
+                .then(result => {
+                  console.log(result);
+                  res.status(201).json({
+                    message: ' user created',
+                    newUser: result,
+                    request: {
+                      type: 'GET',
+                      url: 'http://localhost:3000/users/' + result._id
+                    }
+                  });
+                })
+                .catch(err => {
+                  console.log(err);
+                  res.status(500).json({ error: err });
+                });
+        
+            }
+          });
+        }
+      });
 
-    res.status(201).json({
-      message: ' user created',
-      newUser: result,
-      request: {
-        type: 'GET',
-        url: 'http://localhost:3000/users/' + result._id
-      }
-    });
-  })
-    .catch(err => {
-      console.log(err);
-      res.status(500).json({ error: err });
-    });
+    }
+  });
+  
+
+
 });
 
 router.get('/:idUsuario', (req, res, next) => {
@@ -102,7 +142,7 @@ router.get('/:idUsuario', (req, res, next) => {
 });
 router.get('/email/:email', (req, res, next) => {
   const email = req.params.email;
-  User.findOne({'email': email})
+  User.findOne({ 'email': email })
     .select('_id nombre apellidos nit nit_tipo nacimiento email password user_tipo accesoLVL documentos')
     .exec()
     .then(doc => {
@@ -149,12 +189,12 @@ router.patch('/:idUsuario', (req, res, next) => {
     .exec()
     .then(result => {
       console.log(result);
-      res.status(200).json({ 
+      res.status(200).json({
         message: 'it works!!!',
         funciono: result,
         request: {
           type: 'GET',
-          url: 'http://localhost:3000/users/'+id
+          url: 'http://localhost:3000/users/' + id
         }
       });
     })
@@ -169,10 +209,10 @@ router.delete('/:idUsuario', (req, res, next) => {
   User.remove({ _id: id })
     .exec()
     .then(result => {
-      res.status(200).json({ 
+      res.status(200).json({
         message: 'user deleted!!!!',
         funciono: result
-       });
+      });
     })
     .catch(err => {
       console.log(err);
