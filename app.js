@@ -12,6 +12,7 @@ var filesRouter = require('./routes/files');
 
 mongoose.connect('mongodb+srv://dbEditor:dbEditorPass@dbsaludfolder-itysn.azure.mongodb.net/test?retryWrites=true&w=majority', 
   {
+    useCreateIndex: true,
     useNewUrlParser :true,
     useUnifiedTopology: true  
   }

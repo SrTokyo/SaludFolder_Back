@@ -25,7 +25,7 @@ const Fichero = require('../models/files');
 /* GET Files listing. */
 router.get('/', (req, res, next) => {
     Fichero.find()
-        .select('_id file')
+        .select('_id type file')
         .exec()
         .then(doc => {
             const response = {
@@ -33,6 +33,7 @@ router.get('/', (req, res, next) => {
                 files: doc.map(doc => {
                     return {
                         _id: doc._id,
+                        type: doc.type,
                         file: doc.file,
                         request: {
                             type: 'GET',
@@ -53,6 +54,7 @@ router.get('/', (req, res, next) => {
 router.post('/',upload.single('buffer'), (req, res, next) => {
     const file = new Fichero({
         _id: new mongoose.Types.ObjectId(),
+        type: req.file.mimetype,
         file: req.file.buffer
     });
     file
@@ -60,7 +62,7 @@ router.post('/',upload.single('buffer'), (req, res, next) => {
         .then(result => {
             console.log(result);
             res.status(201).json({
-                message: ' file created',
+                message: '¡¡¡¡file creado con exito!!!!',
                 newFile: result,
                 request: {
                     type: 'GET',
@@ -80,17 +82,18 @@ router.post('/',upload.single('buffer'), (req, res, next) => {
 router.get('/:idFile', (req, res, next) => {
     const id = req.params.idFile;
     Fichero.findById(id)
-        .select('_id file')
+        .select('_id type file')
         .exec()
         .then(doc => {
             if (doc) {
                 const response = {
                     _id: doc._id,
+                    type: doc.type,
                     file: doc.file
                 };
                 res.status(200).json(response);
             } else {
-                res.status(404).json({ message: 'The id isnt found, it can be wrong it just wasnt ever created' })
+                res.status(404).json({ message: 'No se encontro el id, puede ser que sea erroneo, o que no este creado con anterioridad' })
             }
         })
         .catch(err => {
@@ -107,7 +110,7 @@ router.patch('/:idFile',upload.single('buffer'), (req, res, next) => {
         .then(result => {
             console.log(result);
             res.status(200).json({
-                message: 'it works!!!',
+                message: '¡¡¡Funciono el update!!!',
                 funciono: result,
                 request: {
                     type: 'GET',
@@ -120,13 +123,14 @@ router.patch('/:idFile',upload.single('buffer'), (req, res, next) => {
             res.status(500).json({ error: err });
         });
 });
+
 router.delete('/:idFile', (req, res, next) => {
     const id = req.params.idFile;
     Fichero.remove({ _id: id })
         .exec()
         .then(result => {
             res.status(200).json({
-                message: 'file deleted!!!!',
+                message: '¡¡¡¡file eliminado con exito!!!!',
                 funciono: result
             });
         })

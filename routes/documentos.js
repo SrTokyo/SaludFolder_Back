@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const checkAuth = require('../middleware/check-auth');
 
 const Documento = require('../models/documentos');
 const User = require('../models/users');
@@ -37,25 +38,20 @@ router.get('/', (req, res, next) => {
         }
         );
 });
-/*
-router.get('/', (req, res, next) => {
-    res.status(500).json({
-        error: 'this get way isnt supported, you only can do a get for an specific document, puting the doc_id wigth next to /documetos/(doc_id)',
-    });
-});*/
-router.post('/', (req, res, next) => {
+
+router.post('/', checkAuth , (req, res, next) => {
     User.findById(req.body.owner_id)
         .then(user => {
             if (!user) {
                 return res.status(404).json({
-                    message: 'owner id not found'
+                    message: 'usuario correpondiente al owner_id no encontrado'
                 });
             }
             File.findById(req.body.fileURL)
                 .then(file => {
                     if (!file) {
                         return res.status(404).json({
-                            message: 'file id not found'
+                            message: 'file correspondiente al id(fileURL) no encontrado'
                         });
                     }
                     const documento = new Documento({
@@ -69,9 +65,8 @@ router.post('/', (req, res, next) => {
                         .save()
                 })
                 .then(result => {
-                    console.log(result);
                     res.status(201).json({
-                        message: ' documento created',
+                        message: '¡¡¡¡ Documento creado con exito !!!!',
                         newDocumento: {
                             _id: result._id,
                             titulo: result.titulo,
@@ -86,18 +81,17 @@ router.post('/', (req, res, next) => {
                     });
                 }).catch(err => {
                     res.status(500).json({
-                        error: err + 'aqui 1'
+                        error: err
                     });
                 });
         })
         .catch(err => {
             res.status(500).json({
-                error: err + 'aqui 2'
+                error: err
             });
         });
 
 });
-
 
 router.get('/:idDocumento', (req, res, next) => {
     const id = req.params.idDocumento;
@@ -115,7 +109,7 @@ router.get('/:idDocumento', (req, res, next) => {
                 };
                 res.status(200).json(response);
             } else {
-                res.status(404).json({ message: 'The id isnt found, it can be wrong it just wasnt ever created' })
+                res.status(404).json({ message: 'No se encontro el id, puede ser que sea erroneo, o que no este creado con anterioridadl' })
             }
         })
         .catch(err => {
@@ -124,6 +118,7 @@ router.get('/:idDocumento', (req, res, next) => {
         }
         );
 });
+
 router.get('/owner_id/:owner_id', (req, res, next) => {
     const owner_id = req.params.owner_id;
     Documento.find({ 'owner_id': owner_id })
@@ -149,7 +144,7 @@ router.get('/owner_id/:owner_id', (req, res, next) => {
                 };
                 res.status(200).json(response);
             } else {
-                res.status(404).json({ message: 'The owner_id isnt found, it can be wrong, or it just wasnt ever created, or it can have any documents link with him' })
+                res.status(404).json({ message: 'No se encontro el owner_id, puede ser que sea erroneo, o que no este creado con anterioridad, o que no tenga ningun documento propio agregado a él' })
             }
         })
         .catch(err => {
@@ -158,15 +153,8 @@ router.get('/owner_id/:owner_id', (req, res, next) => {
         }
         );
 });
-/*
-router.get('/:email', (req, res, next) => {
-  const email = req.params.email;
-  res.status(202).json({
-    email: email
-  });
-});
-*/
-router.patch('/:idDocumento', (req, res, next) => {
+
+router.patch('/:idDocumento', checkAuth, (req, res, next) => {
     const id = req.params.idDocumento;
     const updateOps = {};
     console.log(0);
@@ -192,13 +180,71 @@ router.patch('/:idDocumento', (req, res, next) => {
             res.status(500).json({ error: err });
         });
 });
-router.delete('/:idDocumento', (req, res, next) => {
+
+router.patch('/addUser/:idDocumento', checkAuth , (req, res, next) => {
+    const idDoc = req.params.idDocumento;
+    const userObjetivo = req.body.email;
+    User.findOne({'email' : userObjetivo})
+    .exec()
+    .then(usr =>{
+      console.log(usr);
+      if(!usr){
+        return res.status(404).json({
+          message : 'Usuario objetivo no encontrado'
+        });
+      }
+      Documento.findById(idDoc)
+      .exec()
+      .then(doc => {
+        console.log(doc);
+        if(!doc){
+          return res.status(404).json({
+            message : 'Documento no encontrado'
+          });
+        }
+        const newUser = doc.users;
+        newUser.push({
+          _id_user: usr._id,
+          email: usr.email,
+        });
+        console.log(newUser);
+        User.update({ _id: doc._id}, {users: newUser})
+        .exec()
+        .then(result =>{
+          res.status(200).json({
+            message: '¡¡¡Funciono!!!',
+            funciono: result,
+            request: {
+              type: 'GET',
+              url: 'http://localhost:3000/documentos/' + doc._id
+            }
+            });
+        })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({ 
+            message: 'No funciono el update',
+            error: err });
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        res.status(500).json({ error: err });
+      });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: err });
+    });   
+  });
+
+router.delete('/:idDocumento', checkAuth, (req, res, next) => {
     const id = req.params.idDocumento;
     Documento.remove({ _id: id })
         .exec()
         .then(result => {
             res.status(200).json({
-                message: 'documento deleted!!!!',
+                message: '¡¡¡¡Documento eliminado!!!!',
                 funciono: result
             });
         })
