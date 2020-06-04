@@ -28,11 +28,7 @@ router.get('/', (req, res, next) => {
             password: doc.password,
             user_tipo: doc.user_tipo,
             accesoLVL: doc.accesoLVL,
-            documentos: doc.documentos,
-            request: {
-              type: 'GET',
-              url: 'http://localhost:3000/users/' + doc._id
-            }
+            documentos: doc.documentos
           }
         })
       };
@@ -90,11 +86,7 @@ router.post('/signup', (req, res, next) => {
                       console.log(result);
                       res.status(201).json({
                         message: '¡¡¡¡Usuario creado exitosamente!!!!',
-                        newUser: result,
-                        request: {
-                          type: 'GET',
-                          url: 'http://localhost:3000/users/' + result._id
-                        }
+                        newUser: result
                       });
                     })
                     .catch(err => {
@@ -225,11 +217,7 @@ router.patch('/:idUsuario', (req, res, next) => {
       console.log(result);
       res.status(200).json({
         message: '!!!Funciono el update!!!',
-        funciono: result,
-        request: {
-          type: 'GET',
-          url: 'http://localhost:3000/users/' + id
-        }
+        funciono: result
       });
     })
     .catch(err => {
@@ -270,11 +258,7 @@ router.patch('/addDoc/:idDocumento', checkAuth , (req, res, next) => {
       .then(result =>{
         res.status(200).json({
           message: '¡¡¡Funciono un documento a sido agregado a un usuario!!!',
-          funciono: result,
-          request: {
-            type: 'GET',
-            url: 'http://localhost:3000/users/' + usr._id
-          }
+          funciono: result
           });
       })
       .catch(err => {

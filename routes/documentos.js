@@ -22,11 +22,7 @@ router.get('/', (req, res, next) => {
                         titulo: doc.titulo,
                         owner_id: doc.owner_id,
                         users: doc.users,
-                        fileURL: 'http://localhost:3000/files/' + doc.fileURL,
-                        request: {
-                            type: 'GET',
-                            url: 'http://localhost:3000/documentos/' + doc._id
-                        }
+                        fileURL:doc.fileURL
                     }
                 })
             };
@@ -72,11 +68,7 @@ router.post('/', checkAuth , (req, res, next) => {
                             titulo: result.titulo,
                             owner_id: result.owner_id,
                             users: result.users,
-                            fileURL: 'http://localhost:3000/files/' + result.fileURL
-                        },
-                        request: {
-                            type: 'GET',
-                            url: 'http://localhost:3000/documentos/' + result._id
+                            fileURL: result.fileURL
                         }
                     });
                 }).catch(err => {
@@ -105,7 +97,7 @@ router.get('/:idDocumento', (req, res, next) => {
                     titulo: doc.titulo,
                     owner_id: doc.owner_id,
                     users: doc.users,
-                    fileURL: 'http://localhost:3000/files/' + doc.fileURL
+                    fileURL: doc.fileURL
                 };
                 res.status(200).json(response);
             } else {
@@ -134,11 +126,7 @@ router.get('/owner_id/:owner_id', (req, res, next) => {
                             titulo: doc.titulo,
                             owner_id: doc.owner_id,
                             users: doc.users,
-                            fileURL: 'http://localhost:3000/files/' + doc.fileURL,
-                            request: {
-                                type: 'GET',
-                                url: 'http://localhost:3000/documentos/' + doc._id
-                            }
+                            fileURL: doc.fileURL
                         }
                     })
                 };
@@ -167,12 +155,8 @@ router.patch('/:idDocumento', checkAuth, (req, res, next) => {
         .then(result => {
             console.log(result);
             res.status(200).json({
-                message: 'it works!!!',
-                funciono: result,
-                request: {
-                    type: 'GET',
-                    url: 'http://localhost:3000/documentos/' + id
-                }
+                message: '¡¡¡Funciono!!!',
+                funciono: result
             });
         })
         .catch(err => {
@@ -213,11 +197,7 @@ router.patch('/addUser/:idDocumento', checkAuth , (req, res, next) => {
         .then(result =>{
           res.status(200).json({
             message: '¡¡¡Funciono!!!',
-            funciono: result,
-            request: {
-              type: 'GET',
-              url: 'http://localhost:3000/documentos/' + doc._id
-            }
+            funciono: result
             });
         })
         .catch(err => {

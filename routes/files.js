@@ -1,28 +1,43 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const multer = require('multer');
+const AWS = require('aws-sdk');
+const Busboy = require('busboy');
+const fileUpload = require('express-fileupload');
 
-const fileFilter = (req, file, cb) => {
-  // reject a file
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'application/pdf') {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-};
 
-const upload = multer({
-  limits: {
-    fileSize: 1024 * 1024 * 15
-  },
-  fileFilter: fileFilter
-});
+const BUCKET_NAME = 'saludfolder';
+const IAM_USER_KEY = 'AKIAZPR4AQYBAEKAJGN3';
+const IAM_USER_SECRET = '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';
+
+function uploadToS3(file) {
+    let s3bucket = new AWS.S3({
+        accessKeyId: IAM_USER_KEY,
+        secretAccessKey: IAM_USER_SECRET,
+        Bucket: BUCKET_NAME
+    });
+    s3bucket.createBucket(function () {
+        var params = {
+            Bucket: BUCKET_NAME,
+            Key: file.name,
+            Body: file.data
+        };
+        console.log(params);
+        s3bucket.upload(params, function (err, data) {
+            if (err) {
+                console.log('error in callback');
+                console.log(err);
+            }
+            console.log('success');
+            console.log(data);
+        });
+    });
+}
+
+
 
 const Fichero = require('../models/files');
 
-
-/* GET Files listing. */
 router.get('/', (req, res, next) => {
     Fichero.find()
         .select('_id type file')
@@ -35,10 +50,6 @@ router.get('/', (req, res, next) => {
                         _id: doc._id,
                         type: doc.type,
                         file: doc.file,
-                        request: {
-                            type: 'GET',
-                            url: 'http://localhost:3000/files/' + doc._id
-                        }
                     }
                 })
             };
@@ -51,23 +62,21 @@ router.get('/', (req, res, next) => {
         );
 });
 
-router.post('/',upload.single('buffer'), (req, res, next) => {
-    const file = new Fichero({
+router.post('/', (req, res, next) => {
+    uploadToS3(req.files.foo);
+    const newFile = new Fichero({
         _id: new mongoose.Types.ObjectId(),
-        type: req.file.mimetype,
-        file: req.file.buffer
+        file: 'https://saludfolder.s3.amazonaws.com/' + req.files.foo.name
     });
-    file
+    newFile
         .save()
         .then(result => {
+            console.log(1);
             console.log(result);
+            console.log(1);
             res.status(201).json({
                 message: '¡¡¡¡file creado con exito!!!!',
-                newFile: result,
-                request: {
-                    type: 'GET',
-                    url: 'http://localhost:3000/files/' + result._id
-                }
+                newFile: result
             });
         })
         .catch(err => {
@@ -101,27 +110,6 @@ router.get('/:idFile', (req, res, next) => {
             res.status(500).json({ error: err });
         }
         );
-});
-
-router.patch('/:idFile',upload.single('buffer'), (req, res, next) => {
-    const id = req.params.idFile;
-    Fichero.update({ _id: id }, { file: req.file.buffer })
-        .exec()
-        .then(result => {
-            console.log(result);
-            res.status(200).json({
-                message: '¡¡¡Funciono el update!!!',
-                funciono: result,
-                request: {
-                    type: 'GET',
-                    url: 'http://localhost:3000/files/' + id
-                }
-            });
-        })
-        .catch(err => {
-            console.log(err);
-            res.status(500).json({ error: err });
-        });
 });
 
 router.delete('/:idFile', (req, res, next) => {

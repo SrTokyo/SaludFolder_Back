@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const fileUpload = require('express-fileupload');
+
 
 var usersRouter = require('./routes/users');
 var documentosRouter = require('./routes/documentos');
@@ -42,6 +44,8 @@ app.use((req, res, next) => {
   } 
   next();
 });
+
+app.use(fileUpload());
 
 app.use('/documentos', documentosRouter);
 app.use('/users', usersRouter);
