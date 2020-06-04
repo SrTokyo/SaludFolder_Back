@@ -10,7 +10,6 @@ const fileUpload = require('express-fileupload');
 
 var usersRouter = require('./routes/users');
 var documentosRouter = require('./routes/documentos');
-var filesRouter = require('./routes/files');
 
 mongoose.connect('mongodb+srv://dbEditor:dbEditorPass@dbsaludfolder-itysn.azure.mongodb.net/test?retryWrites=true&w=majority', 
   {
@@ -49,7 +48,6 @@ app.use(fileUpload());
 
 app.use('/documentos', documentosRouter);
 app.use('/users', usersRouter);
-app.use('/files', filesRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

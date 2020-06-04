@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const documentoSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
-    titulo: { type : String  , required: true},
-      owner_id: { type : mongoose.Schema.Types.ObjectId , ref: 'User', required: true},
-      fileURL: {type: mongoose.Schema.Types.ObjectId ,ref: 'File' , require: true},
-      users: { type : Array  ,default: []}
-      
+    titulo: { type : String , default: ""},
+      owner_id: { type : mongoose.Schema.Types.ObjectId , ref: 'User'},
+      fileName: {type: String, default: ""},
+      users: { type : Array  ,default: []},
+      filetipo: {type : String, default: ""}
 });
 module.exports = mongoose.model('Documento', documentoSchema); 

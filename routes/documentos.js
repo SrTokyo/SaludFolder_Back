@@ -2,16 +2,48 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const checkAuth = require('../middleware/check-auth');
+const AWS = require('aws-sdk');
+const Busboy = require('busboy');
+const fileUpload = require('express-fileupload');
+
+
+const BUCKET_NAME = 'saludfolder';
+const IAM_USER_KEY = 'AKIAZPR4AQYBAEKAJGN3';
+const IAM_USER_SECRET = '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';
+
+function uploadToS3(file) {
+    let s3bucket = new AWS.S3({
+        accessKeyId: IAM_USER_KEY,
+        secretAccessKey: IAM_USER_SECRET,
+        Bucket: BUCKET_NAME
+    });
+    s3bucket.createBucket(function () {
+        var params = {
+            Bucket: BUCKET_NAME,
+            Key: file.name,
+            Body: file.data
+        };
+        console.log(params);
+        s3bucket.upload(params, function (err, data) {
+            if (err) {
+                console.log('error in callback');
+                console.log(err);
+            }
+            console.log('success');
+            console.log(data);
+        });
+    });
+}
 
 const Documento = require('../models/documentos');
 const User = require('../models/users');
-const File = require('../models/files');
+
 
 
 /* GET Documentos listing. */
 router.get('/', (req, res, next) => {
     Documento.find()
-        .select('_id titulo owner_id users fileURL')
+        .select('_id titulo owner_id users fileName filetipo')
         .exec()
         .then(doc => {
             const response = {
@@ -22,7 +54,12 @@ router.get('/', (req, res, next) => {
                         titulo: doc.titulo,
                         owner_id: doc.owner_id,
                         users: doc.users,
-                        fileURL:doc.fileURL
+                        fileName: doc.fileName,
+                        filetipo: doc.filetipo,
+                        request:{
+                            type: 'DELETE',
+                            url: 'http://localhost:3000/documentos/'+doc._id
+                        }
                     }
                 })
             };
@@ -35,60 +72,37 @@ router.get('/', (req, res, next) => {
         );
 });
 
-router.post('/', checkAuth , (req, res, next) => {
-    User.findById(req.body.owner_id)
-        .then(user => {
-            if (!user) {
-                return res.status(404).json({
-                    message: 'usuario correpondiente al owner_id no encontrado'
-                });
-            }
-            File.findById(req.body.fileURL)
-                .then(file => {
-                    if (!file) {
-                        return res.status(404).json({
-                            message: 'file correspondiente al id(fileURL) no encontrado'
-                        });
-                    }
-                    const documento = new Documento({
-                        _id: new mongoose.Types.ObjectId(),
-                        titulo: req.body.titulo,
-                        owner_id: req.body.owner_id,
-                        users: req.body.users,
-                        fileURL: req.body.fileURL
-                    });
-                    return documento
-                        .save()
-                })
-                .then(result => {
-                    res.status(201).json({
-                        message: '¡¡¡¡ Documento creado con exito !!!!',
-                        newDocumento: {
-                            _id: result._id,
-                            titulo: result.titulo,
-                            owner_id: result.owner_id,
-                            users: result.users,
-                            fileURL: result.fileURL
-                        }
-                    });
-                }).catch(err => {
-                    res.status(500).json({
-                        error: err
-                    });
-                });
-        })
-        .catch(err => {
+router.post('/', checkAuth, (req, res, next) => {
+    uploadToS3(req.files.foo);
+    const theID = new mongoose.Types.ObjectId();
+    const documento = new Documento({
+        _id: theID,
+        owner_id : theID,
+        fileName: req.files.foo.name.split(" ").join("+"),
+        filetipo: req.files.foo.mimetype
+    });
+    documento
+        .save()
+        .then(result => {
+            res.status(201).json({
+                message: '¡¡¡¡ File creado con exito !!!!',
+                newDocumento: {
+                    _id: result._id,
+                    fileName: result.fileName,
+                    filetipo: result.filetipo
+                }
+            });
+        }).catch(err => {
             res.status(500).json({
                 error: err
             });
         });
-
 });
 
 router.get('/:idDocumento', (req, res, next) => {
     const id = req.params.idDocumento;
     Documento.findById(id)
-        .select('_id titulo owner_id users fileURL')
+        .select('_id titulo owner_id users fileName filetipo')
         .exec()
         .then(doc => {
             if (doc) {
@@ -97,7 +111,8 @@ router.get('/:idDocumento', (req, res, next) => {
                     titulo: doc.titulo,
                     owner_id: doc.owner_id,
                     users: doc.users,
-                    fileURL: doc.fileURL
+                    fileName: doc.fileName,
+                    filetipo: doc.filetipo
                 };
                 res.status(200).json(response);
             } else {
@@ -114,7 +129,7 @@ router.get('/:idDocumento', (req, res, next) => {
 router.get('/owner_id/:owner_id', (req, res, next) => {
     const owner_id = req.params.owner_id;
     Documento.find({ 'owner_id': owner_id })
-        .select('_id titulo owner_id users fileURL')
+        .select('_id titulo owner_id users fileName filetipo')
         .exec()
         .then(doc => {
             if (doc) {
@@ -126,7 +141,8 @@ router.get('/owner_id/:owner_id', (req, res, next) => {
                             titulo: doc.titulo,
                             owner_id: doc.owner_id,
                             users: doc.users,
-                            fileURL: doc.fileURL
+                            fileName: doc.fileName,
+                            filetipo: doc.filetipo
                         }
                     })
                 };
@@ -165,58 +181,60 @@ router.patch('/:idDocumento', checkAuth, (req, res, next) => {
         });
 });
 
-router.patch('/addUser/:idDocumento', checkAuth , (req, res, next) => {
+router.patch('/addUser/:idDocumento', checkAuth, (req, res, next) => {
     const idDoc = req.params.idDocumento;
     const userObjetivo = req.body.email;
-    User.findOne({'email' : userObjetivo})
-    .exec()
-    .then(usr =>{
-      console.log(usr);
-      if(!usr){
-        return res.status(404).json({
-          message : 'Usuario objetivo no encontrado'
-        });
-      }
-      Documento.findById(idDoc)
-      .exec()
-      .then(doc => {
-        console.log(doc);
-        if(!doc){
-          return res.status(404).json({
-            message : 'Documento no encontrado'
-          });
-        }
-        const newUser = doc.users;
-        newUser.push({
-          _id_user: usr._id,
-          email: usr.email,
-        });
-        console.log(newUser);
-        User.update({ _id: doc._id}, {users: newUser})
+    User.findOne({ 'email': userObjetivo })
         .exec()
-        .then(result =>{
-          res.status(200).json({
-            message: '¡¡¡Funciono!!!',
-            funciono: result
-            });
+        .then(usr => {
+            console.log(usr);
+            if (!usr) {
+                return res.status(404).json({
+                    message: 'Usuario objetivo no encontrado'
+                });
+            }
+            Documento.findById(idDoc)
+                .exec()
+                .then(doc => {
+                    console.log(doc);
+                    if (!doc) {
+                        return res.status(404).json({
+                            message: 'Documento no encontrado'
+                        });
+                    }
+                    const newUser = doc.users;
+                    newUser.push({
+                        _id_user: usr._id,
+                        email: usr.email,
+                    });
+                    console.log(newUser);
+                    Documento.update({ _id: doc._id }, { users: newUser })
+                        .exec()
+                        .then(result => {
+                            res.status(200).json({
+                                message: '¡¡¡Funciono!!!',
+                                funciono: result,
+                                newUsers: newUser
+                            });
+                        })
+                        .catch(err => {
+                            console.log(err);
+                            res.status(500).json({
+                                message: 'No funciono el update',
+                                error: err
+                            });
+                        });
+                })
+                .catch(err => {
+                    console.log(err);
+                    res.status(500).json({ error: err });
+                });
         })
         .catch(err => {
-          console.log(err);
-          res.status(500).json({ 
-            message: 'No funciono el update',
-            error: err });
+            console.log(err);
+            res.status(500).json({ error: err });
         });
-      })
-      .catch(err => {
-        console.log(err);
-        res.status(500).json({ error: err });
-      });
-    })
-    .catch(err => {
-      console.log(err);
-      res.status(500).json({ error: err });
-    });   
-  });
+});
 
 router.delete('/:idDocumento', checkAuth, (req, res, next) => {
     const id = req.params.idDocumento;
