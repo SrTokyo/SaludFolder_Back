@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const checkAuth = require('../middleware/check-auth');
@@ -62,40 +62,43 @@ router.post('/signup', (req, res, next) => {
                 Message: 'nit ya esta siendo usado, use otro por favor'
               });
             } else {
-              bcrypt.hash(req.body.password, 10, (err, hash) => {
-                if (err) {
-                  return res.status(500).json({
-                    error: err
-                  });
-                } else {
-
-                  const user = new User({
-                    _id: new mongoose.Types.ObjectId(),
-                    nombre: req.body.nombre,
-                    apellidos: req.body.apellidos,
-                    nit: req.body.nit,
-                    nit_tipo: req.body.nit_tipo,
-                    email: req.body.email,
-                    password: hash,
-                    user_tipo: req.body.user_tipo,
-                    accesoLVL: req.body.accesoLVL,
-                    documentos: req.body.documentos
-                  });
-                  user.save()
-                    .then(result => {
-                      console.log(result);
-                      res.status(201).json({
-                        message: '¡¡¡¡Usuario creado exitosamente!!!!',
-                        newUser: result
-                      });
-                    })
-                    .catch(err => {
-                      console.log(err);
-                      res.status(500).json({ error: err });
+              bcrypt.genSalt(10, function(err, salt) {
+                bcrypt.hash(req.body.password, salt, function(err, hash) {
+                  if (err) {
+                    return res.status(500).json({
+                      error: err
                     });
-
-                }
-              });
+                  } else {
+  
+                    const user = new User({
+                      _id: new mongoose.Types.ObjectId(),
+                      nombre: req.body.nombre,
+                      apellidos: req.body.apellidos,
+                      nit: req.body.nit,
+                      nit_tipo: req.body.nit_tipo,
+                      email: req.body.email,
+                      password: hash,
+                      user_tipo: req.body.user_tipo,
+                      accesoLVL: req.body.accesoLVL,
+                      documentos: req.body.documentos
+                    });
+                    user.save()
+                      .then(result => {
+                        console.log(result);
+                        res.status(201).json({
+                          message: '¡¡¡¡Usuario creado exitosamente!!!!',
+                          newUser: result
+                        });
+                      })
+                      .catch(err => {
+                        console.log(err);
+                        res.status(500).json({ error: err });
+                      });
+  
+                  }
+                });
+            });
+              
             }
           });
 
